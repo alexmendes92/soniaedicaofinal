@@ -16,6 +16,11 @@ import Contact from './pages/Contact';
 import Editor from './pages/Editor';
 import PersonalizedJourney from './pages/PersonalizedJourney';
 
+// --- CONFIGURAÇÃO DA API ---
+const API_BASE_URL = import.meta.env.PROD 
+  ? 'https://sonia-final-backend.alex-s-mendes.workers.dev/api' 
+  : 'http://localhost:8787/api';
+
 export enum Page {
   HOME = 'home',
   PSYCHOANALYSIS = 'psychoanalysis',
