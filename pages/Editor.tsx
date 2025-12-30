@@ -1,6 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Page, SiteConfig, ServiceItem, LocationItem } from '../App';
+
+// --- CONFIGURAÇÃO DA API (Mesma do App.tsx para garantir consistência) ---
+const API_BASE_URL = import.meta.env.PROD 
+  ? 'https://sonia-final-backend.alex-s-mendes.workers.dev/api' 
+  : 'http://localhost:8787/api';
 
 interface Props {
   navigate: (page: Page) => void;
@@ -398,7 +402,20 @@ const Editor: React.FC<Props> = ({ navigate, currentConfig, onUpdateConfig, serv
                                             Salvar Alterações
                                         </button>
                                         {editingId && (
-                                            <button onClick={() => { if(confirm('Remover este serviço?')) { onUpdateServices(services.filter(s => s.id !== editingId)); setIsEditingService(false); }}} className="px-5 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100 transition-colors">
+                                            <button onClick={async () => { 
+                                                if(confirm('Remover este serviço?')) { 
+                                                    // 1. Atualiza visualmente
+                                                    onUpdateServices(services.filter(s => s.id !== editingId)); 
+                                                    setIsEditingService(false);
+                                                    
+                                                    // 2. Remove do Backend
+                                                    if(editingId) {
+                                                        try {
+                                                            await fetch(`${API_BASE_URL}/services?id=${editingId}`, { method: 'DELETE' });
+                                                        } catch(e) { console.error("Erro ao deletar", e); }
+                                                    }
+                                                }
+                                            }} className="px-5 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100 transition-colors">
                                                 <span className="material-symbols-outlined">delete</span>
                                             </button>
                                         )}
