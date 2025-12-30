@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import BottomNav from './components/BottomNav';
 import Footer from './components/Footer';
@@ -20,6 +19,20 @@ import PersonalizedJourney from './pages/PersonalizedJourney';
 const API_BASE_URL = import.meta.env.PROD 
   ? 'https://sonia-final-backend.alex-s-mendes.workers.dev/api' 
   : 'http://localhost:8787/api';
+
+// --- Função Auxiliar para Salvar ---
+const saveData = async (endpoint: string, data: any) => {
+    try {
+        await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        // console.log('Salvo com sucesso:', endpoint);
+    } catch (error) {
+        console.error('Erro ao salvar em:', endpoint, error);
+    }
+};
 
 export enum Page {
   HOME = 'home',
@@ -176,7 +189,7 @@ const App: React.FC = () => {
   const [overlayColor, setOverlayColor] = useState('transparent');
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  // Serviços Iniciais Padrão
+  // Serviços Iniciais Padrão (Serão sobrescritos pelo fetch se houver dados no banco)
   const [services, setServices] = useState<ServiceItem[]>([
     {
         id: 'psicanalise',
@@ -320,6 +333,55 @@ const App: React.FC = () => {
         }
     ]
   });
+
+  // --- 1. CARREGAR DADOS DO BANCO AO INICIAR ---
+  useEffect(() => {
+    const fetchData = async () => {
+        try {
+            // Carrega Configuração Geral
+            const resConfig = await fetch(`${API_BASE_URL}/config`);
+            if (resConfig.ok) {
+                const dataConfig = await resConfig.json();
+                if (dataConfig && Object.keys(dataConfig).length > 0) {
+                    setSiteConfig(prev => ({ ...prev, ...dataConfig }));
+                }
+            }
+
+            // Carrega Serviços
+            const resServices = await fetch(`${API_BASE_URL}/services`);
+            if (resServices.ok) {
+                const dataServices = await resServices.json();
+                if (Array.isArray(dataServices) && dataServices.length > 0) {
+                    setServices(dataServices);
+                }
+            }
+        } catch (error) {
+            console.error("Erro ao carregar dados:", error);
+        }
+    };
+    fetchData();
+  }, []);
+
+  // --- 2. SALVAMENTO AUTOMÁTICO DA CONFIGURAÇÃO ---
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        if (siteConfig.ownerName) { 
+            saveData('/config', siteConfig);
+        }
+    }, 1500); // Aguarda 1.5s após a última digitação para salvar
+
+    return () => clearTimeout(timer);
+  }, [siteConfig]);
+
+  // --- 3. SALVAMENTO AUTOMÁTICO DOS SERVIÇOS ---
+  useEffect(() => {
+      const timer = setTimeout(() => {
+          // Salva/Atualiza cada serviço da lista
+          services.forEach(svc => saveData('/services', svc));
+      }, 2000);
+      return () => clearTimeout(timer);
+  }, [services]);
+
 
   const navigate = (page: Page) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
